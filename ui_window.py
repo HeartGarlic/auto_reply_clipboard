@@ -53,13 +53,7 @@ class ReplyWindow:
 
         self.build_main_tab()
         self.build_self_tab()
-        reset_frame = tk.Frame(self.tab_profiles, bg="#ffffff")
-        reset_frame.pack(pady=8)
-        tk.Label(reset_frame, text="当前场景背景:", bg="#ffffff").pack(anchor="w", padx=10)
-        self.scene_entry = tk.Text(reset_frame, height=3, bg="#eef9ff", font=("Arial", 10))
-        self.scene_entry.pack(fill="x", padx=15)
-        tk.Button(reset_frame, text="重置场景背景", command=self.reset_scene).pack(pady=5)
-    
+        # 原场景背景输入区域已移除，直接构建对话人管理面板
         self.build_profiles_tab()
 
     def build_main_tab(self):
@@ -131,9 +125,15 @@ class ReplyWindow:
 
         tk.Label(right, text="背景信息:").pack(anchor="w")
         self.profile_text = tk.Text(right, height=4, bg="#e6f7ff", font=("Microsoft YaHei", 10))
+        self.profile_text.pack(fill="x", pady=5)
+
+        tk.Label(right, text="当前背景信息:").pack(anchor="w")
+        self.current_background_text = tk.Text(right, height=4, bg="#fffce6", font=("Microsoft YaHei", 10))
+        self.current_background_text.pack(fill="x", pady=5)
+
         tk.Label(right, text="当前场景信息:").pack(anchor="w", pady=(10,0))
         self.scene_edit_text = tk.Text(right, height=4, bg="#fffbe6", font=("Microsoft YaHei", 10))
-        self.profile_text.pack(fill="x", pady=5)
+        self.scene_edit_text.pack(fill="x", pady=5)
 
         self.new_name_entry = tk.Entry(right, font=("Microsoft YaHei", 10))
         self.new_name_entry.pack(pady=2)
@@ -158,6 +158,9 @@ class ReplyWindow:
         self.person_var.set(name)
         self.profile_text.delete("1.0", tk.END)
         self.profile_text.insert(tk.END, self.profiles.get(name, {}).get("background", ""))
+        if hasattr(self, "current_background_text"):
+            self.current_background_text.delete("1.0", tk.END)
+            self.current_background_text.insert(tk.END, self.profiles.get(name, {}).get("background", ""))
         if hasattr(self, "scene_edit_text"):
             self.scene_edit_text.delete("1.0", tk.END)
             self.scene_edit_text.insert(tk.END, self.profiles.get(name, {}).get("scene", ""))
@@ -184,8 +187,9 @@ class ReplyWindow:
     def save_current_profile(self):
         name = self.person_var.get()
         info = self.profile_text.get("1.0", tk.END).strip()
+        current_info = self.current_background_text.get("1.0", tk.END).strip() if hasattr(self, "current_background_text") else info
         if name:
-            self.profiles[name]["background"] = info
+            self.profiles[name]["background"] = current_info
         scene = self.scene_edit_text.get("1.0", tk.END).strip()
         self.profiles[name]["scene"] = scene
         self.save_profiles()
@@ -242,11 +246,6 @@ class ReplyWindow:
         self.update_context_display(self.person_var.get())
         self.root.mainloop()
 
-    def reset_scene(self):
-        self.scene_context = ""
-        self.scene_entry.delete("1.0", tk.END)
-
-    
     
     
     def generate_reply(self, text):
@@ -309,13 +308,14 @@ class ReplyWindow:
         if hasattr(self, 'context_scene_text'):
             self.context_scene_text.delete("1.0", tk.END)
             self.context_scene_text.insert(tk.END, scene)
-        if hasattr(self, 'scene_entry'):
-            self.scene_entry.delete("1.0", tk.END)
-            self.scene_entry.insert(tk.END, scene)
+        if hasattr(self, 'current_background_text'):
+            self.current_background_text.delete("1.0", tk.END)
+            self.current_background_text.insert(tk.END, background)
         if hasattr(self, 'scene_edit_text'):
             self.scene_edit_text.delete("1.0", tk.END)
             self.scene_edit_text.insert(tk.END, scene)
 
     def on_person_change(self, event=None):
         self.update_context_display(self.person_var.get())
-    
+
+
