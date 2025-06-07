@@ -27,6 +27,7 @@ class ReplyWindow:
         self.person_var = tk.StringVar()
         self.selected_person = next(iter(self.profiles), "未指定")
         self.person_var.set(self.selected_person)
+        self.person_var.trace_add("write", lambda *args: self.update_context_display(self.person_var.get()))
 
         self.tone_var = tk.StringVar(value="default")
         self.scene_context = ""
@@ -229,6 +230,19 @@ class ReplyWindow:
         self.root.clipboard_append(reply)
         self.auto_trigger_enabled = False
 
+    def paste_to_cursor(self, text):
+        try:
+            import pyautogui
+            import sys
+            import pyperclip
+            pyperclip.copy(text)
+            if sys.platform == 'darwin':
+                pyautogui.hotkey('command', 'v')
+            else:
+                pyautogui.hotkey('ctrl', 'v')
+        except Exception as e:
+            print(f"[自动粘贴失败]: {e}")
+
     
     def update_input(self, text):
         if not self.auto_trigger_enabled:
@@ -291,6 +305,8 @@ class ReplyWindow:
 
         self.status_label.config(text="")
         self.conversation_context.append(f"对方：{text}我：{reply}")
+
+        self.paste_to_cursor(reply)
 
         # 自动更新场景内容（每5轮总结）
         if len(self.conversation_context) % 5 == 0:
