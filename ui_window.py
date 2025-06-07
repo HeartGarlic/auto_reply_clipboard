@@ -130,18 +130,23 @@ class ReplyWindow:
         self.profile_listbox.pack(fill="y")
         self.profile_listbox.bind("<<ListboxSelect>>", self.on_select_profile)
 
-        tk.Label(right, text="背景信息:").pack(anchor="w")
-        self.profile_text = tk.Text(right, height=4, bg="#e6f7ff", font=("Microsoft YaHei", 10))
-        tk.Label(right, text="当前场景信息:").pack(anchor="w", pady=(10,0))
-        self.scene_edit_text = tk.Text(right, height=4, bg="#fffbe6", font=("Microsoft YaHei", 10))
-        self.profile_text.pack(fill="x", pady=5)
+        tk.Label(right, text="背景信息:", bg="#ffffff").pack(anchor="w")
+        self.profile_text = tk.Text(right, height=6, bg="#e6f7ff", font=("Microsoft YaHei", 10))
+        self.profile_text.pack(fill="x", pady=(0,5))
 
-        self.new_name_entry = tk.Entry(right, font=("Microsoft YaHei", 10))
-        self.new_name_entry.pack(pady=2)
+        tk.Label(right, text="当前场景信息:", bg="#ffffff").pack(anchor="w")
+        self.scene_edit_text = tk.Text(right, height=6, bg="#fffbe6", font=("Microsoft YaHei", 10))
+        self.scene_edit_text.pack(fill="x", pady=(0,5))
 
-        tk.Button(right, text="添加对话人", command=self.add_profile).pack(pady=2)
-        tk.Button(right, text="删除选中对话人", command=self.delete_profile).pack(pady=2)
-        tk.Button(right, text="保存背景信息", command=self.save_current_profile).pack(pady=2)
+        tk.Button(right, text="保存修改", command=self.save_current_profile).pack(pady=5)
+
+        add_frame = tk.Frame(left, bg="#ffffff")
+        add_frame.pack(pady=5, fill="x")
+
+        self.new_name_entry = tk.Entry(add_frame, font=("Microsoft YaHei", 10))
+        self.new_name_entry.pack(side="left", fill="x", expand=True)
+        tk.Button(add_frame, text="添加", command=self.add_profile).pack(side="left", padx=2)
+        tk.Button(left, text="删除选中", command=self.delete_profile).pack(pady=2)
 
         self.refresh_profile_list()
 
@@ -149,6 +154,15 @@ class ReplyWindow:
         self.profile_listbox.delete(0, tk.END)
         for name in self.profiles:
             self.profile_listbox.insert(tk.END, name)
+
+        current = self.person_var.get()
+        if current in self.profiles:
+            idx = list(self.profiles.keys()).index(current)
+            self.profile_listbox.selection_set(idx)
+        elif self.profiles:
+            first = next(iter(self.profiles))
+            self.person_var.set(first)
+            self.profile_listbox.selection_set(0)
 
     def on_select_profile(self, event):
         selection = self.profile_listbox.curselection()
@@ -172,6 +186,7 @@ class ReplyWindow:
             self.save_profiles()
             self.refresh_profile_list()
             self.new_name_entry.delete(0, tk.END)
+            self.person_var.set(name)
 
     def delete_profile(self):
         selection = self.profile_listbox.curselection()
@@ -182,6 +197,8 @@ class ReplyWindow:
             self.profiles.pop(name, None)
             self.save_profiles()
             self.refresh_profile_list()
+            if self.person_var.get() == name:
+                self.person_var.set(next(iter(self.profiles), "未指定"))
 
     def save_current_profile(self):
         name = self.person_var.get()
@@ -236,6 +253,7 @@ class ReplyWindow:
             import pyautogui
             import sys
             import pyperclip
+            self.auto_trigger_enabled = False
             pyperclip.copy(text)
             if sys.platform == 'darwin':
                 pyautogui.hotkey('command', 'v')
