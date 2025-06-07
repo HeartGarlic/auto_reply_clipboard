@@ -56,10 +56,10 @@ class ReplyWindow:
         self.build_self_tab()
         reset_frame = tk.Frame(self.tab_profiles, bg="#ffffff")
         reset_frame.pack(pady=8)
-        tk.Label(reset_frame, text="当前场景背景:", bg="#ffffff").pack(anchor="w", padx=10)
-        self.scene_entry = tk.Text(reset_frame, height=3, bg="#eef9ff", font=("Arial", 10))
-        self.scene_entry.pack(fill="x", padx=15)
-        tk.Button(reset_frame, text="重置场景背景", command=self.reset_scene).pack(pady=5)
+        # tk.Label(reset_frame, text="当前场景背景:", bg="#ffffff").pack(anchor="w", padx=10)
+        # self.scene_entry = tk.Text(reset_frame, height=3, bg="#eef9ff", font=("Arial", 10))
+        # self.scene_entry.pack(fill="x", padx=15)
+        # tk.Button(reset_frame, text="重置场景背景", command=self.reset_scene).pack(pady=5)
     
         self.build_profiles_tab()
 
