@@ -157,8 +157,9 @@ class ReplyWindow:
         index = selection[0]
         name = self.profile_listbox.get(index)
         self.person_var.set(name)
-        self.profile_text.delete("1.0", tk.END)
-        self.profile_text.insert(tk.END, self.profiles.get(name, {}).get("background", ""))
+        if hasattr(self, "profile_text"):
+            self.profile_text.delete("1.0", tk.END)
+            self.profile_text.insert(tk.END, self.profiles.get(name, {}).get("background", ""))
         if hasattr(self, "scene_edit_text"):
             self.scene_edit_text.delete("1.0", tk.END)
             self.scene_edit_text.insert(tk.END, self.profiles.get(name, {}).get("scene", ""))
