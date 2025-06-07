@@ -35,6 +35,9 @@ class ReplyWindow:
 
         self.setup_tabs()
 
+        # Initialize context fields for the default person
+        self.update_context_display(self.person_var.get())
+
     def setup_tabs(self):
         notebook = ttk.Notebook(self.root)
         notebook.pack(fill="both", expand=True, padx=10, pady=10)
@@ -67,6 +70,7 @@ class ReplyWindow:
         tk.Label(top, text="选择对话人:", bg="#ffffff").pack(side=tk.LEFT, padx=5)
         dropdown = ttk.Combobox(top, textvariable=self.person_var, values=list(self.profiles.keys()), width=20, state="readonly")
         dropdown.pack(side=tk.LEFT, padx=5)
+        dropdown.bind("<<ComboboxSelected>>", self.on_person_change)
 
         
         # 显示当前人物背景信息和场景信息（可编辑）
@@ -95,6 +99,8 @@ class ReplyWindow:
         self.output_text.pack(fill="both", padx=15, pady=5, expand=True)
 
         tk.Label(frame, text="🧠 模型思考内容（仅查看）:", bg="#ffffff", fg="#555").pack(anchor="w", padx=15)
+        self.think_output_text = tk.Text(frame, height=4, bg="#f0f0f0", font=("Arial", 10), state="disabled")
+        self.think_output_text.pack(fill="both", padx=15, pady=(0, 5))
         
         self.copy_btn = tk.Button(frame, text="复制回复", command=self.copy_reply)
         self.copy_btn.pack(pady=3)
@@ -155,14 +161,12 @@ class ReplyWindow:
         if hasattr(self, "scene_edit_text"):
             self.scene_edit_text.delete("1.0", tk.END)
             self.scene_edit_text.insert(tk.END, self.profiles.get(name, {}).get("scene", ""))
-        if hasattr(self, "scene_entry"):
-            self.scene_entry.delete("1.0", tk.END)
-            self.scene_entry.insert(tk.END, self.profiles.get(name, {}).get("scene", ""))
+        self.update_context_display(name)
 
     def add_profile(self):
         name = self.new_name_entry.get().strip()
         if name and name not in self.profiles:
-            self.profiles[name] = ""
+            self.profiles[name] = {"background": "", "scene": ""}
             self.save_profiles()
             self.refresh_profile_list()
             self.new_name_entry.delete(0, tk.END)
@@ -219,56 +223,6 @@ class ReplyWindow:
     
     
     
-    def generate_reply(self, text):
-        name = self.person_var.get()
-        self_profile = self.self_text.get("1.0", tk.END).strip()
-        profile = self.context_background_text.get("1.0", tk.END).strip()
-        scene = self.context_scene_text.get("1.0", tk.END).strip()
-
-        self.profiles[name]["background"] = profile
-        self.profiles[name]["scene"] = scene
-
-        prefix = f"你是{name}口中的我，一个真实的人类。请代入我的身份与语气，不要透露任何 AI 痕迹。"
-        if self_profile:
-            prefix += f" 我的背景设定是：{self_profile}。"
-        if profile:
-            prefix += f" 对方背景信息：{profile}。"
-        if scene:
-            prefix += f" 当前聊天场景：{scene}。"
-        if self.conversation_context:
-            history = "".join(self.conversation_context[-5:])
-            prefix += f" 以下是最近的聊天记录：{history}"
-
-        final_text = f"{prefix}现在对方说：{text}请代我自然回复一句，不要解释过程，不要暴露你是AI。"
-
-        self.status_label.config(text="正在思考中，请稍候...")
-        reply = get_reply_suggestion(final_text, tone=self.tone_var.get())
-
-        think = ""
-        if "<think>" in reply and "</think>" in reply:
-            m = re.search(r"<think>(.*?)</think>", reply, re.DOTALL)
-            think = m.group(1).strip() if m else ""
-            reply = re.sub(r"<think>.*?</think>", "", reply, flags=re.DOTALL).strip()
-
-        self.output_text.delete("1.0", tk.END)
-        self.output_text.insert(tk.END, reply)
-
-        if hasattr(self, 'think_output_text'):
-            self.think_output_text.config(state="normal")
-            self.think_output_text.delete("1.0", tk.END)
-            self.think_output_text.insert(tk.END, think)
-            self.think_output_text.config(state="disabled")
-
-        self.status_label.config(text="")
-        self.conversation_context.append(f"对方：{text}我：{reply}")
-
-        # 自动更新场景内容（每5轮总结）
-        if len(self.conversation_context) % 5 == 0:
-            summary_prompt = "请总结以下多轮对话所处的场景背景：" + "".join(self.conversation_context[-5:]) + "要求精简自然："
-            summary = get_reply_suggestion(summary_prompt, tone="formal")
-            self.context_scene_text.delete("1.0", tk.END)
-            self.context_scene_text.insert(tk.END, summary)
-            self.profiles[name]["scene"] = summary
     def copy_reply(self):
         reply = self.output_text.get("1.0", tk.END).strip()
         self.root.clipboard_clear()
@@ -285,7 +239,7 @@ class ReplyWindow:
         self.manual_generate()
 
     def run(self):
-        self.load_scene_for_selected()
+        self.update_context_display(self.person_var.get())
         self.root.mainloop()
 
     def reset_scene(self):
@@ -345,10 +299,23 @@ class ReplyWindow:
             self.context_scene_text.delete("1.0", tk.END)
             self.context_scene_text.insert(tk.END, summary)
             self.profiles[name]["scene"] = summary
-    def load_scene_for_selected(self):
-        name = self.person_var.get()
-        scene = self.profiles.get(name, {}).get("scene", "")
+    def update_context_display(self, name):
+        info = self.profiles.get(name, {})
+        background = info.get("background", "")
+        scene = info.get("scene", "")
+        if hasattr(self, 'context_background_text'):
+            self.context_background_text.delete("1.0", tk.END)
+            self.context_background_text.insert(tk.END, background)
+        if hasattr(self, 'context_scene_text'):
+            self.context_scene_text.delete("1.0", tk.END)
+            self.context_scene_text.insert(tk.END, scene)
         if hasattr(self, 'scene_entry'):
             self.scene_entry.delete("1.0", tk.END)
             self.scene_entry.insert(tk.END, scene)
+        if hasattr(self, 'scene_edit_text'):
+            self.scene_edit_text.delete("1.0", tk.END)
+            self.scene_edit_text.insert(tk.END, scene)
+
+    def on_person_change(self, event=None):
+        self.update_context_display(self.person_var.get())
     
